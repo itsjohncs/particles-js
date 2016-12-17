@@ -40,6 +40,10 @@ const gravityWell = {
     mass: 1,
 };
 
+const globalOptions = {
+    regenerate: false,
+};
+
 const draw = function() {
     context.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -57,6 +61,17 @@ const draw = function() {
 };
 
 const step = function() {
+    if (globalOptions.regenerate) {
+        particles[Math.floor(rand(0, particles.length - 1))] = new Particle({
+            position: new Vector({
+                x: rand(0, canvas.width),
+                y: rand(0, canvas.height),
+            }),
+            velocity: new Vector({x: 0, y: 0}),
+            fillStyle: "rgb(200, 0, 0)",
+        });
+    }
+
     for (const particle of particles) {
         // Figure out the amount of "force" being exerted on the particle (this
         // force will be added to its velocity).
@@ -79,7 +94,7 @@ const step = function() {
                     .getScaled(0.99));
 
         // Adjust that velocity if we're out of bounds (this makes the
-        // particles bouncde).
+        // particles bounce).
         if (particle.position.x > canvas.width) {
             particle.velocity = particle.velocity.getUpdated({
                 x: -Math.abs(particle.velocity.x),
@@ -115,9 +130,21 @@ canvas.addEventListener("mousemove", function(e) {
     gravityWell.position.y = e.clientY;
 });
 
-canvas.addEventListener("click", function(e) {});
+canvas.addEventListener("mousedown", function(e) {
+    gravityWell.mass = -Math.abs(gravityWell.mass);
+});
+
+canvas.addEventListener("mouseup", function(e) {
+    gravityWell.mass = Math.abs(gravityWell.mass);
+});
 
 canvas.addEventListener("mouseout", function(e) {
     gravityWell.position.x = e.clientX;
     gravityWell.position.y = e.clientY;
+});
+
+window.addEventListener("keyup", function(e) {
+    if (e.keyCode === 32) {
+        globalOptions.regenerate = !globalOptions.regenerate;
+    }
 });

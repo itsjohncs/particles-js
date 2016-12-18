@@ -2,21 +2,19 @@ const Vector = require("./vector.js");
 const {clamp, rand} = require("./util.js");
 const {ParticleEngine, Particle} = require("./particleEngine.js");
 
-
+// This is the canvas that's visible to our user
 const canvas = document.getElementById("particleCanvas");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const context = canvas.getContext("2d");
 
+// This is our hidden canvas we'll use as a buffer
 const bufferCanvas = document.getElementById("particleCanvasBuffer");
 bufferCanvas.width = window.innerWidth;
 bufferCanvas.height = window.innerHeight;
 const bufferContext = bufferCanvas.getContext("2d");
 
-const engine = new ParticleEngine({
-    canvasSize: {width: window.innerWidth, height: window.innerHeight},
-});
-
+// Creates some number of random particles scatterred across the screen
 const createRandomParticles = function(numParticles) {
     const particles = [];
     for (let i = 0; i < numParticles; ++i) {
@@ -33,23 +31,27 @@ const createRandomParticles = function(numParticles) {
     return particles;
 };
 
-engine.particles = createRandomParticles(500);
-
-const BIG_G = 10;
-engine.gravityWells.push({
-    position: new Vector({
-        x: canvas.width / 2,
-        y: canvas.height / 2,
-    }),
-    mass: 0,
+// This is our core and handles applying the various forces to our lovely
+// little particles.
+const engine = new ParticleEngine({
+    canvasSize: {width: window.innerWidth, height: window.innerHeight},
+    particles: createRandomParticles(500),
+    metaforces: [
+        // This'll give us some random motion in the beggining
+        (particle) => {
+            // TODO(johnsullivan): rand should be [a, b) and not [a, b] or
+            //     whatever its purporting to be... It's actually [a, b + 1)
+            //     right now...
+            return new Vector({
+                x: rand(-1, 0) * 0.2,
+                y: rand(-1, 0) * 0.2,
+            });
+        },
+    ]
 });
 
-const draw = function() {
-    engine.draw(bufferContext);
-
-    context.drawImage(bufferCanvas, 0, 0);
-};
-
+// This is what actually schedules draws with the browser, as well as what
+// determines and displays the FPS.
 const drawController = new (function() {
     this.pendingFrame = null;
 
@@ -60,7 +62,9 @@ const drawController = new (function() {
     };
 
     const doDraw = (now) => {
-        draw();
+        engine.draw(bufferContext);
+        context.drawImage(bufferCanvas, 0, 0);
+
         this.pendingFrame = null;
         this.recordFrameDrawnForFPS(now);
     };
@@ -94,29 +98,19 @@ const drawController = new (function() {
     };
 })();
 
-const brownianMotionForce = function(particle) {
-    // TODO(johnsullivan): rand should be [a, b) and not [a, b] or whatever
-    //     its purporting to be... It's actually [a, b + 1) right now...
-    return new Vector({
-        x: rand(-1, 0) * 0.2,
-        y: rand(-1, 0) * 0.2,
-    });
-};
-
-engine.metaforces.push(brownianMotionForce);
-
-const step = function() {
+// Have the engine step on an interval rather than pairing it with how quickly
+// we can draw. This is a pretty cheapo/not-the-most-effective way to deal
+// with different computer's processing speeds...
+setInterval(() => {
     engine.step();
     drawController.requestDraw();
-};
-
-setInterval(() => {
-    step();
 }, 20);
 
-window.requestAnimationFrame(draw);
-
 canvas.addEventListener("mousemove", function(e) {
+    if (engine.gravityWells.length === 0) {
+        return;
+    }
+
     engine.gravityWells[0].position = new Vector({
         x: e.clientX,
         y: e.clientY,
@@ -124,12 +118,27 @@ canvas.addEventListener("mousemove", function(e) {
 });
 
 canvas.addEventListener("mousedown", function(e) {
-    engine.gravityWells[0].mass = -1;
+    engine.gravityWells = [{
+        position: new Vector({
+            x: e.clientX,
+            y: e.clientY,
+        }),
+        mass: -1,
+    }];
+
+    // Clear out any metaforces (this is a heavy-handed way to stop the
+    // brownian motion we have going at the beginning).
     engine.metaforces = [];
 });
 
 canvas.addEventListener("mouseup", function(e) {
-    engine.gravityWells[0].mass = 1;
+    engine.gravityWells = [{
+        position: new Vector({
+            x: e.clientX,
+            y: e.clientY,
+        }),
+        mass: 1,
+    }];
 });
 
 window.addEventListener("keyup", function(e) {
@@ -140,20 +149,32 @@ window.addEventListener("keyup", function(e) {
 
 
 const moveGravityWellForTouch = function(touchEvent) {
+    // We never wanna let the user scroll or create an implicit click event
+    touchEvent.preventDefault();
+
+    // If the user takes their fingers off the screen, we want to leave any
+    // gravity wells that existed previously right where they are. This lets
+    // people see the cool swirling more easily.
     if (touchEvent.touches.length === 0) {
         return;
     }
 
-    const touch = touchEvent.touches[0];
-    engine.gravityWells[0].mass = 1;
-    engine.gravityWells[0].position = new Vector({
-        x: touch.pageX,
-        y: touch.pageY,
-    });
+    const gravityWells = [];
+    for (let i = 0; i < touchEvent.touches.length; ++i) {
+        const touch = touchEvent.touches[i];
+        gravityWells.push({
+            mass: 1,
+            position: new Vector({
+                x: touch.pageX,
+                y: touch.pageY,
+            }),
+        });
+    }
+    engine.gravityWells = gravityWells;
 
+    // Clear out any metaforces (this is a heavy-handed way to stop the
+    // brownian motion we have going at the beginning).
     engine.metaforces = [];
-
-    touchEvent.preventDefault();
 };
 
 canvas.addEventListener("touchstart", moveGravityWellForTouch);

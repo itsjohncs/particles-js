@@ -10,8 +10,8 @@ const context = canvas.getContext("2d");
 
 // This is our hidden canvas we'll use as a buffer
 const bufferCanvas = document.getElementById("particleCanvasBuffer");
-bufferCanvas.width = window.innerWidth;
-bufferCanvas.height = window.innerHeight;
+bufferCanvas.width = canvas.width;
+bufferCanvas.height = canvas.height;
 const bufferContext = bufferCanvas.getContext("2d");
 
 // Creates some number of random particles scatterred across the screen
@@ -34,7 +34,7 @@ const createRandomParticles = function(numParticles) {
 // This is our core and handles applying the various forces to our lovely
 // little particles.
 const engine = new ParticleEngine({
-    canvasSize: {width: window.innerWidth, height: window.innerHeight},
+    canvasSize: {width: canvas.width, height: canvas.height},
     particles: createRandomParticles(500),
     metaforces: [
         // This'll give us some random motion in the beggining
@@ -159,6 +159,7 @@ const moveGravityWellForTouch = function(touchEvent) {
         return;
     }
 
+    // Createa gravity well at each touch point
     const gravityWells = [];
     for (let i = 0; i < touchEvent.touches.length; ++i) {
         const touch = touchEvent.touches[i];
@@ -179,3 +180,24 @@ const moveGravityWellForTouch = function(touchEvent) {
 
 canvas.addEventListener("touchstart", moveGravityWellForTouch);
 canvas.addEventListener("touchmove", moveGravityWellForTouch);
+
+// Resize everything when the window resizes
+let queuedResize = null;
+window.addEventListener("resize", function(event) {
+    if (queuedResize) {
+        return;
+    }
+
+    queuedResize = window.requestAnimationFrame(function() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        bufferCanvas.width = canvas.width;
+        bufferCanvas.height = canvas.height;
+
+        engine.canvasSize.width = canvas.width;
+        engine.canvasSize.height = canvas.height;
+
+        queuedResize = null;
+    });
+});

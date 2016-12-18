@@ -106,6 +106,23 @@ setInterval(() => {
     drawController.requestDraw();
 }, 20);
 
+let clickHintVisible = false;
+let clickHint = setTimeout(function() {
+    document.getElementById("click-hint").style.opacity = 1;
+    clickHintVisible = true;
+}, 5000);
+const hideClickHint = function() {
+    if (clickHint) {
+        clearTimeout(clickHint);
+        clickHint = null;
+    }
+
+    if (clickHintVisible) {
+        document.getElementById("click-hint").style.opacity = 0;
+        clickHintVisible = false;
+    }
+};
+
 canvas.addEventListener("mousemove", function(e) {
     if (engine.gravityWells.length === 0) {
         return;
@@ -129,6 +146,8 @@ canvas.addEventListener("mousedown", function(e) {
     // Clear out any metaforces (this is a heavy-handed way to stop the
     // brownian motion we have going at the beginning).
     engine.metaforces = [];
+
+    hideClickHint();
 });
 
 canvas.addEventListener("mouseup", function(e) {
@@ -176,6 +195,8 @@ const moveGravityWellForTouch = function(touchEvent) {
     // Clear out any metaforces (this is a heavy-handed way to stop the
     // brownian motion we have going at the beginning).
     engine.metaforces = [];
+
+    hideClickHint();
 };
 
 canvas.addEventListener("touchstart", moveGravityWellForTouch);

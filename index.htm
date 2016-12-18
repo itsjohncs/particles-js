@@ -4,19 +4,22 @@
 	<style>
 		body {
 			font-family: "Courier New", monospace;
+			font-size: 12px;
 		}
 
 		.header {
 			position: fixed;
-			left: 10px;
-			top: 10px;
+			left: 0px;
+			top: 0px;
 			display: inline-block;
+			padding: 10px;
 		}
 
 		.status {
 			position: fixed;
-			right: 10px;
-			bottom: 10px;
+			right: 0px;
+			bottom: 0px;
+			padding: 10px;
 			opacity: 0.2;
 		}
 
@@ -26,6 +29,35 @@
 
 		a {
 			color: rgb(200, 0, 0);
+		}
+
+		#click-hint {
+			position: fixed;
+			padding: 10px;
+			left: 0px;
+			bottom: 0px;
+			opacity: 0;
+			transition: opacity 1s ease-in;
+		}
+
+		.pulsing {
+			animation-duration: 5s;
+			animation-iteration-count: infinite;
+			animation-name: pulse;
+		}
+
+		@keyframes pulse {
+			0% {
+				transform: scale(1);
+			}
+
+			10% {
+				transform: scale(1.2);
+			}
+
+			20%, 100% {
+				transform: scale(1);
+			}
 		}
 	</style>
 </head>
@@ -38,6 +70,9 @@
 		</div>
 		<div class="status">
 			FPS: <span id="fps">__</span>
+		</div>
+		<div id="click-hint" class="pulsing">
+			(hint: click/touch/drag)
 		</div>
 	</header>
 	<script src="/js/bundle.js"></script>

@@ -19,19 +19,31 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const context = canvas.getContext("2d");
 
-const particles = [];
-for (let i = 0; i < 500; ++i) {
-    particles.push(new Particle({
-        position: new Vector({
-            x: rand(0, canvas.width),
-            y: rand(0, canvas.height),
-        }),
-        velocity: new Vector({x: 0, y: 0}),
-        fillStyle: "rgb(200, 0, 0)",
-    }));
+const bufferCanvas = document.getElementById("particleCanvasBuffer");
+bufferCanvas.width = window.innerWidth;
+bufferCanvas.height = window.innerHeight;
+const bufferContext = bufferCanvas.getContext("2d");
+
+
+const createRandomParticles = function(numParticles) {
+    const particles = [];
+    for (let i = 0; i < numParticles; ++i) {
+        particles.push(new Particle({
+            position: new Vector({
+                x: rand(0, canvas.width),
+                y: rand(0, canvas.height),
+            }),
+            velocity: new Vector({x: 0, y: 0}),
+            fillStyle: "rgba(200, 0, 0, 0.4)",
+        }));
+    }
+
+    return particles;
 }
 
-const BIG_G = 50;
+let particles = createRandomParticles(500);
+
+const BIG_G = 10;
 const gravityWell = {
     position: new Vector({
         x: canvas.width / 2,
@@ -40,38 +52,68 @@ const gravityWell = {
     mass: 1,
 };
 
-const globalOptions = {
-    regenerate: false,
-};
-
 const draw = function() {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    bufferContext.fillStyle = "rgb(255, 255, 255)";
+    bufferContext.fillRect(0, 0, canvas.width, canvas.height);
     
     for (const particle of particles) {
-        context.fillStyle = particle.fillStyle;
+        bufferContext.fillStyle = particle.fillStyle;
         const width = particle.getWidth();
-        context.fillRect(
+        bufferContext.fillRect(
             particle.position.x - width / 2,
             particle.position.y - width / 2,
             width,
             width);
     }
 
-    window.requestAnimationFrame(draw);
+    context.drawImage(bufferCanvas, 0, 0);
 };
 
-const step = function() {
-    if (globalOptions.regenerate) {
-        particles[Math.floor(rand(0, particles.length - 1))] = new Particle({
-            position: new Vector({
-                x: rand(0, canvas.width),
-                y: rand(0, canvas.height),
-            }),
-            velocity: new Vector({x: 0, y: 0}),
-            fillStyle: "rgb(200, 0, 0)",
-        });
-    }
+const drawController = new (function() {
+    this.pendingFrame = null;
 
+    this.fpsData = {
+        rollingSum: 0,
+        rollingSumNumSamples: 0,
+        lastDrawnFrameTimestamp: null,
+    };
+
+    const doDraw = (now) => {
+        draw();
+        this.pendingFrame = null;
+        this.recordFrameDrawnForFPS(now);
+    };
+
+    this.recordFrameDrawnForFPS = (now) => {
+        if (this.fpsData.lastDrawnFrameTimestamp !== null) {
+            const millisecondsSinceLastDraw = (
+                now - this.fpsData.lastDrawnFrameTimestamp);
+            const fps = 1000 / millisecondsSinceLastDraw;
+            this.fpsData.rollingSum += fps;
+            this.fpsData.rollingSumNumSamples += 1;
+        }
+
+        if (this.fpsData.rollingSumNumSamples > 50) {
+            const averageFPS = (
+                this.fpsData.rollingSum / this.fpsData.rollingSumNumSamples);
+            document.getElementById("fps").innerHTML = (
+                "" + Math.round(averageFPS));
+
+            this.fpsData.rollingSum = 0;
+            this.fpsData.rollingSumNumSamples = 0;
+        }
+
+        this.fpsData.lastDrawnFrameTimestamp = now;
+    };
+
+    this.requestDraw = () => {
+        if (!this.pendingFrame) {
+            this.pendingFrame = window.requestAnimationFrame(doDraw);
+        }
+    };
+})();
+
+const step = function() {
     for (const particle of particles) {
         // Figure out the amount of "force" being exerted on the particle (this
         // force will be added to its velocity).
@@ -117,6 +159,8 @@ const step = function() {
         // Finally, apply the velocity to get the new position!
         particle.position = particle.position.getSum(particle.velocity);
     }
+
+    drawController.requestDraw();
 };
 
 setInterval(() => {
@@ -126,8 +170,10 @@ setInterval(() => {
 window.requestAnimationFrame(draw);
 
 canvas.addEventListener("mousemove", function(e) {
-    gravityWell.position.x = e.clientX;
-    gravityWell.position.y = e.clientY;
+    gravityWell.position = new Vector({
+        x: e.clientX,
+        y: e.clientY,
+    });
 });
 
 canvas.addEventListener("mousedown", function(e) {
@@ -138,13 +184,26 @@ canvas.addEventListener("mouseup", function(e) {
     gravityWell.mass = Math.abs(gravityWell.mass);
 });
 
-canvas.addEventListener("mouseout", function(e) {
-    gravityWell.position.x = e.clientX;
-    gravityWell.position.y = e.clientY;
-});
-
 window.addEventListener("keyup", function(e) {
     if (e.keyCode === 32) {
-        globalOptions.regenerate = !globalOptions.regenerate;
+        particles = createRandomParticles(500);
     }
 });
+
+
+const moveGravityWellForTouch = function(touchEvent) {
+    if (touchEvent.touches.length === 0) {
+        return;
+    }
+
+    const touch = touchEvent.touches[0];
+    gravityWell.position = new Vector({
+        x: touch.pageX,
+        y: touch.pageY,
+    });
+
+    touchEvent.preventDefault();
+};
+
+canvas.addEventListener("touchstart", moveGravityWellForTouch);
+canvas.addEventListener("touchmove", moveGravityWellForTouch);

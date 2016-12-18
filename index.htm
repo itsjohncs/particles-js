@@ -1,7 +1,40 @@
 <!DOCTYPE html>
 <head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		body {
+			font-family: "Courier New", monospace;
+		}
+
+		.header {
+			position: fixed;
+			left: 10px;
+			top: 10px;
+			display: inline-block;
+		}
+
+		.status {
+			position: fixed;
+			right: 10px;
+			bottom: 10px;
+			opacity: 0.2;
+		}
+
+		a {
+			color: rgb(200, 0, 0);
+		}
+	</style>
 </head>
 <body style="overflow: hidden; padding: 0; margin: 0">
 	<canvas id="particleCanvas" width="0" height="0"></canvas>
+	<canvas id="particleCanvasBuffer" width="0" height="0"></canvas>
+	<header class="header">
+		<div class="link-bar">
+			// John Sullivan // <a href="http://johncs.com">personal&nbsp;site</a> / <a href="https://www.github.com/brownhead">github</a> / <a href="#">?</a>
+		</div>
+		<div class="status">
+			FPS: <span id="fps">__</span>
+		</div>
+	</header>
 	<script src="/js/bundle.js"></script>
 </body>

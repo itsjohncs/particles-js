@@ -14,6 +14,117 @@ class Particle {
     }
 }
 
+class ParticleEngine {
+    constructor({canvasSize, particles = [], gravityWells = [],
+                 metaforces = []}) {
+        this.canvasSize = canvasSize;
+        this.particles = particles;
+        this.gravityWells = gravityWells;
+        this.metaforces = metaforces;
+    }
+
+    getForceOnParticle(particle) {
+        // We're going to collect all the forces. We could just store the sum,
+        // but keeping them all around for a sec isn't particularly slower and
+        // makes debugging easier (just log the forces array if anything's
+        // acting weird).
+        const forces = [];
+
+        // Get the forces from the gravity wells
+        for (const gravityWell of this.gravityWells) {
+            // Figure out the distance between the particle and the gravity
+            // well, in addition to a normalized vector pointing from the
+            // particle to the gravity well.
+            const {magnitude: distance, normalizedVector: direction} = (
+                gravityWell.position
+                        .getDifference(particle.position)
+                        .getNormalizedVectorAndMagnitude());
+
+            // Determine the magnitude of the force this gravity well is
+            // exerting on the particle. This isn't based on any real-world
+            // force, and was found by playing around and seeing what looks
+            // good.
+            const forceMagnitude = clamp(
+                BIG_G * gravityWell.mass * Math.min(1, 1 / distance),
+                -0.1,
+                0.1);
+
+            forces.push(direction.getScaled(forceMagnitude));
+        }
+
+        // Now from the metaforces
+        for (const metaforceFunc of this.metaforces) {
+            forces.push(metaforceFunc(particle));
+        }
+
+        // Sum all the forces together
+        return forces.reduce((a, b) => a.getSum(b), new Vector({x: 0, y: 0}));
+    }
+
+    getAdjustedVelocityWithWallBounce(particle) {
+        let velocity = particle.velocity;
+
+        if (particle.position.x > canvas.width) {
+            velocity = velocity.getUpdated({
+                x: -Math.abs(velocity.x),
+            });
+        } else if (particle.position.x < 0) {
+            velocity = velocity.getUpdated({
+                x: Math.abs(velocity.x),
+            });
+        }
+        if (particle.position.y > canvas.height) {
+            velocity = velocity.getUpdated({
+                y: -Math.abs(velocity.y),
+            });
+        } else if (particle.position.y < 0) {
+            velocity = velocity.getUpdated({
+                y: Math.abs(velocity.y),
+            });
+        }
+
+        return velocity;
+    }
+
+    step() {
+        for (const particle of this.particles) {
+            const force = this.getForceOnParticle(particle);
+            particle.velocity = particle.velocity.getSum(force);
+
+            // And add some friction (this is very important for
+            // keeping the amount of "chaos" in the simulation down).
+            particle.velocity = particle.velocity.getScaled(0.99);
+
+            particle.velocity = (
+                this.getAdjustedVelocityWithWallBounce(particle));
+
+            // We have our final velocity! Now actually take a step in time
+            // and apply that velocity to the particle's position.
+            particle.position = particle.position.getSum(particle.velocity);
+        }
+    }
+
+    draw(context) {
+        context.fillStyle = "rgb(255, 255, 255)";
+        context.fillRect(
+            0,
+            0,
+            this.canvasSize.width,
+            this.canvasSize.height);
+        
+        for (const particle of this.particles) {
+            context.fillStyle = particle.fillStyle;
+
+            const width = particle.getWidth();
+            context.fillRect(
+                particle.position.x - width / 2,
+                particle.position.y - width / 2,
+                width,
+                width);
+        }
+    }
+}
+
 const canvas = document.getElementById("particleCanvas");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -24,6 +135,9 @@ bufferCanvas.width = window.innerWidth;
 bufferCanvas.height = window.innerHeight;
 const bufferContext = bufferCanvas.getContext("2d");
 
+const engine = new ParticleEngine({
+    canvasSize: {width: window.innerWidth, height: window.innerHeight},
+});
 
 const createRandomParticles = function(numParticles) {
     const particles = [];
@@ -39,32 +153,21 @@ const createRandomParticles = function(numParticles) {
     }
 
     return particles;
-}
+};
 
-let particles = createRandomParticles(500);
+engine.particles = createRandomParticles(500);
 
 const BIG_G = 10;
-const gravityWell = {
+engine.gravityWells.push({
     position: new Vector({
         x: canvas.width / 2,
         y: canvas.height / 2,
     }),
     mass: 0,
-};
+});
 
 const draw = function() {
-    bufferContext.fillStyle = "rgb(255, 255, 255)";
-    bufferContext.fillRect(0, 0, canvas.width, canvas.height);
-    
-    for (const particle of particles) {
-        bufferContext.fillStyle = particle.fillStyle;
-        const width = particle.getWidth();
-        bufferContext.fillRect(
-            particle.position.x - width / 2,
-            particle.position.y - width / 2,
-            width,
-            width);
-    }
+    engine.draw(bufferContext);
 
     context.drawImage(bufferCanvas, 0, 0);
 };
@@ -122,62 +225,10 @@ const brownianMotionForce = function(particle) {
     });
 };
 
-let metaforces = [brownianMotionForce];
+engine.metaforces.push(brownianMotionForce);
 
 const step = function() {
-    for (const particle of particles) {
-        // Figure out the amount of "force" being exerted on the particle (this
-        // force will be added to its velocity).
-        const {magnitude: distance, normalizedVector: direction} = (
-            gravityWell.position
-                    .getDifference(particle.position)
-                    .getNormalizedVectorAndMagnitude());
-        const force = clamp(
-            BIG_G * gravityWell.mass * Math.min(1, 1 / distance),
-            -0.1,
-            0.1);
-
-        // Determine the particle's new velocity we'd like
-        particle.velocity = (
-            particle.velocity
-                    // Add the force
-                    .getSum(direction.getScaled(force))
-                    // And add some friction (this is very important for
-                    // keeping the amount of "chaos" in the simulation down).
-                    .getScaled(0.99));
-
-        // Apply some more force from brownian motion
-        let metaforceSum = new Vector({x: 0, y: 0});
-        for (const f of metaforces) {
-            metaforceSum = metaforceSum.getSum(f(particle));
-        }
-        particle.velocity = particle.velocity.getSum(metaforceSum);
-
-        // Adjust that velocity if we're out of bounds (this makes the
-        // particles bounce).
-        if (particle.position.x > canvas.width) {
-            particle.velocity = particle.velocity.getUpdated({
-                x: -Math.abs(particle.velocity.x),
-            });
-        } else if (particle.position.x < 0) {
-            particle.velocity = particle.velocity.getUpdated({
-                x: Math.abs(particle.velocity.x),
-            });
-        }
-        if (particle.position.y > canvas.height) {
-            particle.velocity = particle.velocity.getUpdated({
-                y: -Math.abs(particle.velocity.y),
-            });
-        } else if (particle.position.y < 0) {
-            particle.velocity = particle.velocity.getUpdated({
-                y: Math.abs(particle.velocity.y),
-            });
-        }
-
-        // Finally, apply the velocity to get the new position!
-        particle.position = particle.position.getSum(particle.velocity);
-    }
-
+    engine.step();
     drawController.requestDraw();
 };
 
@@ -188,24 +239,24 @@ setInterval(() => {
 window.requestAnimationFrame(draw);
 
 canvas.addEventListener("mousemove", function(e) {
-    gravityWell.position = new Vector({
+    engine.gravityWells[0].position = new Vector({
         x: e.clientX,
         y: e.clientY,
     });
 });
 
 canvas.addEventListener("mousedown", function(e) {
-    gravityWell.mass = -1;
-    metaforces = [];
+    engine.gravityWells[0].mass = -1;
+    engine.metaforces = [];
 });
 
 canvas.addEventListener("mouseup", function(e) {
-    gravityWell.mass = 1;
+    engine.gravityWells[0].mass = 1;
 });
 
 window.addEventListener("keyup", function(e) {
     if (e.keyCode === 32) {
-        particles = createRandomParticles(500);
+        engine.particles = createRandomParticles(500);
     }
 });
 
@@ -216,13 +267,13 @@ const moveGravityWellForTouch = function(touchEvent) {
     }
 
     const touch = touchEvent.touches[0];
-    gravityWell.mass = 1;
-    gravityWell.position = new Vector({
+    engine.gravityWells[0].mass = 1;
+    engine.gravityWells[0].position = new Vector({
         x: touch.pageX,
         y: touch.pageY,
     });
 
-    metaforces = [];
+    engine.metaforces = [];
 
     touchEvent.preventDefault();
 };

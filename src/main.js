@@ -10,7 +10,7 @@ class Particle {
     
     getWidth() {
         const {magnitude: speed} = this.velocity.getNormalizedVectorAndMagnitude();
-        return clamp(speed, 1, 10);
+        return clamp(speed, 2, 10);
     }
 }
 
@@ -49,7 +49,7 @@ const gravityWell = {
         x: canvas.width / 2,
         y: canvas.height / 2,
     }),
-    mass: 1,
+    mass: 0,
 };
 
 const draw = function() {
@@ -113,6 +113,17 @@ const drawController = new (function() {
     };
 })();
 
+const brownianMotionForce = function(particle) {
+    // TODO(johnsullivan): rand should be [a, b) and not [a, b] or whatever
+    //     its purporting to be... It's actually [a, b + 1) right now...
+    return new Vector({
+        x: rand(-1, 0) * 0.2,
+        y: rand(-1, 0) * 0.2,
+    });
+};
+
+let metaforces = [brownianMotionForce];
+
 const step = function() {
     for (const particle of particles) {
         // Figure out the amount of "force" being exerted on the particle (this
@@ -134,6 +145,13 @@ const step = function() {
                     // And add some friction (this is very important for
                     // keeping the amount of "chaos" in the simulation down).
                     .getScaled(0.99));
+
+        // Apply some more force from brownian motion
+        let metaforceSum = new Vector({x: 0, y: 0});
+        for (const f of metaforces) {
+            metaforceSum = metaforceSum.getSum(f(particle));
+        }
+        particle.velocity = particle.velocity.getSum(metaforceSum);
 
         // Adjust that velocity if we're out of bounds (this makes the
         // particles bounce).
@@ -177,11 +195,12 @@ canvas.addEventListener("mousemove", function(e) {
 });
 
 canvas.addEventListener("mousedown", function(e) {
-    gravityWell.mass = -Math.abs(gravityWell.mass);
+    gravityWell.mass = -1;
+    metaforces = [];
 });
 
 canvas.addEventListener("mouseup", function(e) {
-    gravityWell.mass = Math.abs(gravityWell.mass);
+    gravityWell.mass = 1;
 });
 
 window.addEventListener("keyup", function(e) {
@@ -197,10 +216,13 @@ const moveGravityWellForTouch = function(touchEvent) {
     }
 
     const touch = touchEvent.touches[0];
+    gravityWell.mass = 1;
     gravityWell.position = new Vector({
         x: touch.pageX,
         y: touch.pageY,
     });
+
+    metaforces = [];
 
     touchEvent.preventDefault();
 };

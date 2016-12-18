@@ -1,4 +1,4 @@
-This is a JS port of an [old particle engine](https://www.github.com/particles) I made in high school. It doesn't really serve any purpose, but hopefully it's fun to play with!
+This is a JS port of an [old particle engine](https://www.github.com/brownhead/particles) I made in high school. It doesn't really serve any purpose, but hopefully it's fun to play with!
 
 Here are all the different actions that are supported:
 

@@ -1,5 +1,5 @@
 module.exports = {
-    context: __dirname + "/src",
+    context: __dirname + "/particles-src",
     entry: "./main.js",
     output: {
         path: __dirname + "/build",

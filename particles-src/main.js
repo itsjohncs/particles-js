@@ -49,7 +49,7 @@ const engine = new ParticleEngine({
 
 // This is what actually schedules draws with the browser, as well as what
 // determines and displays the FPS.
-const drawController = new (function() {
+const drawController = new (function() { // jshint ignore:line
     this.pendingFrame = null;
 
     this.fpsData = {

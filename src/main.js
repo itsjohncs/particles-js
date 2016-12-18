@@ -39,13 +39,10 @@ const engine = new ParticleEngine({
     metaforces: [
         // This'll give us some random motion in the beggining
         (particle) => {
-            // TODO(johnsullivan): rand should be [a, b) and not [a, b] or
-            //     whatever its purporting to be... It's actually [a, b + 1)
-            //     right now...
             return new Vector({
-                x: rand(-1, 0) * 0.2,
-                y: rand(-1, 0) * 0.2,
-            });
+                x: rand(-1, 0),
+                y: rand(-1, 0),
+            }).getScaled(0.1);
         },
     ]
 });

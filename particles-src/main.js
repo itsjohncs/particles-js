@@ -137,6 +137,7 @@ canvas.addEventListener("mousemove", function(e) {
 });
 
 canvas.addEventListener("mousedown", function(e) {
+    e.preventDefault();
     engine.gravityWells = [{
         position: new Vector({
             x: e.clientX,
@@ -147,6 +148,7 @@ canvas.addEventListener("mousedown", function(e) {
 });
 
 canvas.addEventListener("mouseup", function(e) {
+    e.preventDefault();
     engine.gravityWells = [{
         position: new Vector({
             x: e.clientX,
@@ -158,6 +160,7 @@ canvas.addEventListener("mouseup", function(e) {
 
 window.addEventListener("keyup", function(e) {
     if (e.keyCode === 32) {
+        e.preventDefault();
         engine.particles = createRandomParticles(500);
     }
 });

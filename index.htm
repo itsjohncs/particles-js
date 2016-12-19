@@ -1,67 +1,7 @@
 <!DOCTYPE html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1,  maximum-scale=1.0, user-scalable=no">
-	<style>
-		body {
-			font-family: "Courier New", monospace;
-			font-size: 12px;
-		}
-
-		.header {
-			position: fixed;
-			left: 0px;
-			top: 0px;
-			display: inline-block;
-			padding: 10px;
-		}
-
-		.status {
-			position: fixed;
-			right: 0px;
-			bottom: 0px;
-			padding: 10px;
-			opacity: 0.2;
-			pointer-events: none;
-		}
-
-		#particleCanvasBuffer {
-			display: none;
-		}
-
-		a {
-			color: rgb(200, 0, 0);
-		}
-
-		#click-hint {
-			position: fixed;
-			padding: 10px;
-			left: 0px;
-			bottom: 0px;
-			opacity: 0;
-			transition: opacity 1s ease-in;
-			pointer-events: none;
-		}
-
-		.pulsing {
-			animation-duration: 5s;
-			animation-iteration-count: infinite;
-			animation-name: pulse;
-		}
-
-		@keyframes pulse {
-			0% {
-				transform: scale(1);
-			}
-
-			10% {
-				transform: scale(1.2);
-			}
-
-			20%, 100% {
-				transform: scale(1);
-			}
-		}
-	</style>
+	<link rel="stylesheet" href="index.css">
 </head>
 <body style="overflow: hidden; padding: 0; margin: 0">
 	<canvas id="particleCanvas" width="0" height="0"></canvas>
@@ -77,5 +17,5 @@
 			(hint: click/touch/drag)
 		</div>
 	</header>
-	<script src="/js/bundle.js"></script>
+	<script src="js/bundle.js"></script>
 </body>

@@ -16,6 +16,8 @@ build:
 
 	node inline-resources.js > ./build/index.compressed.htm
 
+	echo Done! Built to ./build/index.compress.htm
+
 deps:
 	npm install babel-loader babel-core babel-preset-es2015 webpack \
 	            postcss-cli cssnano autoprefixer inline-resource \

@@ -1,8 +1,6 @@
 body {
 	font-family: "Courier New", monospace;
 	font-size: 14px;
-
-	// Don't worry so much iOS, it's just a simple page...
 	-webkit-text-size-adjust: none;
 }
 

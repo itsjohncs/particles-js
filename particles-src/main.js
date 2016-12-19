@@ -107,7 +107,7 @@ let clickHintVisible = false;
 let clickHint = setTimeout(function() {
     document.getElementById("click-hint").style.opacity = 1;
     clickHintVisible = true;
-}, 5000);
+}, 2000);
 const hideClickHint = function() {
     if (clickHint) {
         clearTimeout(clickHint);
@@ -121,14 +121,19 @@ const hideClickHint = function() {
 };
 
 canvas.addEventListener("mousemove", function(e) {
-    if (engine.gravityWells.length === 0) {
-        return;
-    }
+    engine.gravityWells = [{
+        position: new Vector({
+            x: e.clientX,
+            y: e.clientY,
+        }),
+        mass: engine.gravityWells.length > 0 ? engine.gravityWells[0].mass : 1,
+    }];
 
-    engine.gravityWells[0].position = new Vector({
-        x: e.clientX,
-        y: e.clientY,
-    });
+    // Clear out any metaforces (this is a heavy-handed way to stop the
+    // brownian motion we have going at the beginning).
+    engine.metaforces = [];
+
+    hideClickHint();
 });
 
 canvas.addEventListener("mousedown", function(e) {
@@ -139,12 +144,6 @@ canvas.addEventListener("mousedown", function(e) {
         }),
         mass: -1,
     }];
-
-    // Clear out any metaforces (this is a heavy-handed way to stop the
-    // brownian motion we have going at the beginning).
-    engine.metaforces = [];
-
-    hideClickHint();
 });
 
 canvas.addEventListener("mouseup", function(e) {

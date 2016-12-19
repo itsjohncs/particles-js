@@ -106,7 +106,7 @@ class ParticleEngine {
     }
 
     draw(context) {
-        context.fillStyle = "rgb(255, 255, 255)";
+        context.fillStyle = "rgba(255, 255, 255, 0.7)";
         context.fillRect(
             0,
             0,
